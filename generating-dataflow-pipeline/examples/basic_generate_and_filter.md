@@ -49,7 +49,7 @@ Field flow:
 ### 3. Reasoning Summary
 - Task is straightforward: generate text → filter by quality
 - PromptedGenerator chosen over FormatStrPromptedGenerator because only one input field needed
-- No need for additional operators (Text2QAGenerator, KBC, etc.) as they don't match requirements
+- No need for additional operators (Text2MultiHopQAGenerator, KBC trio, etc.) as they don't match requirements
 - Field dependencies satisfied: generated_description created before being filtered
 - Only 1 prompt-driven generator used (well within limit)
 
