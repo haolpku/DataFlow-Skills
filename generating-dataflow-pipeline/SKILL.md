@@ -236,6 +236,38 @@ from dataflow.operators.core_text import PromptedGenerator, FormatStrPromptedGen
 from dataflow.operators.knowledge_cleaning import FileOrURLToMarkdownConverterFlash, KBCChunkGenerator, KBCTextCleaner
 ```
 
+## Extended Operator Reference: core_text Skill
+
+The sibling skill **`core_text`** (located at `../core_text/`) provides detailed per-operator API documentation that supplements the summary signatures above.
+
+**Path**: `../core_text/generate/`
+
+**Available operator references** (8 operators):
+
+| Operator | Subdirectory | Description |
+|---|---|---|
+| `PromptedGenerator` | `prompted-generator/` | Single-field LLM generation — full execution logic, skip-falsy rules |
+| `FormatStrPromptedGenerator` | `format-str-prompted-generator/` | Multi-field template generation — placeholder-to-column mapping details, `@prompt_restrict` validation |
+| `Text2MultiHopQAGenerator` | `text2multihopqa-generator/` | Multi-hop QA pair construction — text filtering thresholds (100–200k chars), output structure, row-count behavior |
+| `BenchAnswerGenerator` | `bench-answer-generator/` | Benchmark answer generation — `eval_type` variants, conditional field requirements |
+| `ChunkedPromptedGenerator` | `chunked-prompted-generator/` | Long document chunk-by-chunk processing — token-based splitting, file I/O conventions |
+| `EmbeddingGenerator` | `embedding-generator/` | Text vectorization — supported serving backends, `/v1/embeddings` endpoint usage |
+| `RandomDomainKnowledgeRowGenerator` | `random-domain-knowledge-row-generator/` | Domain-specific row generation — seed dataframe requirements, `generation_num` constraints |
+| `RetrievalGenerator` | `retrieval-generator/` | Async RAG generation — `LightRAGServing.create()` async initialization, `await run()` requirement |
+
+**Each operator directory contains**:
+- `SKILL.md` — Full English reference: constructor signature, `run()` signature, execution logic, mandatory rules, return value semantics
+- `SKILL_zh.md` — Chinese translation of the reference
+- `examples/good.md` — Best-practice pipeline example
+- `examples/bad.md` — Common mistakes and failure cases
+
+**When to consult `core_text`**:
+- When generating pipeline code that uses an operator beyond the 6 core primitives (e.g., `BenchAnswerGenerator`, `ChunkedPromptedGenerator`, `EmbeddingGenerator`, `RetrievalGenerator`, `RandomDomainKnowledgeRowGenerator`)
+- When you need to verify edge-case behavior, return value semantics, or error conditions for any operator
+- When debugging generated pipeline code — the `bad.md` examples document the most frequent mistakes
+
+**Note**: The 6 core primitives documented above in "Operator Parameter Signature Rule" remain the primary reference for standard pipeline generation. The `core_text` skill provides deeper detail and covers additional operators not in the core set.
+
 ## Input File Content Analysis Rule (MANDATORY)
 
 Analyze sample data content to determine task nature:
