@@ -3,16 +3,17 @@ name: generating-dataflow-pipeline
 description: Reasoning-guided pipeline planner that generates standard DataFlow pipeline code
 version: 1.0.0
 ---
-
 # DataFlow Pipeline Code Generator
 
 ## Goal
 
 This skill is used when users provide:
+
 - **Target**: What the pipeline should achieve
 - **Sample Data File**: Path to a JSONL file containing 1-5 representative data samples
 
 The skill must:
+
 1. **Read and analyze the JSONL file** at the provided path
 2. Infer data structure, field types, and content characteristics
 3. Determine task type based on file content (document processing, text transformation, multi-field composition)
@@ -24,6 +25,7 @@ The skill must:
 ## User Input Format
 
 Users provide:
+
 ```
 Target: [Clear task description]
 Sample file: [Path to JSONL file, e.g., ./data/input.jsonl]
@@ -35,6 +37,7 @@ Expected outputs: [Optional field list]
 ## Preferred Operator Strategy
 
 **Six Core Primitives** (high-coverage operators for most data science tasks):
+
 1. `PromptedGenerator` - Single-field LLM generation
 2. `FormatStrPromptedGenerator` - Multi-field template generation
 3. `Text2MultiHopQAGenerator` - Multi-hop QA pair construction
@@ -50,14 +53,14 @@ When a specialized operator exists for the task, it MUST be used over generic op
 
 **Decision table** (check in order, use the first match):
 
-| Task / Scenario | Required Operator | Do NOT use |
-|---|---|---|
-| Generate QA pairs from text | `Text2MultiHopQAGenerator` | `PromptedGenerator` with QA prompt |
-| Convert file path / URL to text | KBC trio (`FileOrURLToMarkdownConverterFlash` → `KBCChunkGenerator` → `KBCTextCleaner`) | `PromptedGenerator` to summarize files |
-| Score / evaluate using multiple fields | `FormatStrPromptedGenerator` + `GeneralFilter` | `PromptedFilter` (single input_key only) |
-| Filter by deterministic rule on existing fields | `GeneralFilter` | `PromptedFilter` |
-| Generate new content from a single field | `PromptedGenerator` | — |
-| Generate new content from multiple fields | `FormatStrPromptedGenerator` | Multiple `PromptedGenerator` steps |
+| Task / Scenario                                 | Required Operator                                                                               | Do NOT use                                 |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Generate QA pairs from text                     | `Text2MultiHopQAGenerator`                                                                    | `PromptedGenerator` with QA prompt       |
+| Convert file path / URL to text                 | KBC trio (`FileOrURLToMarkdownConverterFlash` → `KBCChunkGenerator` → `KBCTextCleaner`) | `PromptedGenerator` to summarize files   |
+| Score / evaluate using multiple fields          | `FormatStrPromptedGenerator` + `GeneralFilter`                                              | `PromptedFilter` (single input_key only) |
+| Filter by deterministic rule on existing fields | `GeneralFilter`                                                                               | `PromptedFilter`                         |
+| Generate new content from a single field        | `PromptedGenerator`                                                                           | —                                         |
+| Generate new content from multiple fields       | `FormatStrPromptedGenerator`                                                                  | Multiple `PromptedGenerator` steps       |
 
 **Key principle**: `PromptedGenerator` is the fallback for generic single-field generation. If the target mentions "QA", "question-answer", "问答" — always reach for `Text2MultiHopQAGenerator` first.
 
@@ -82,11 +85,13 @@ When a specialized operator exists for the task, it MUST be used over generic op
 ## KBC Usage Constraint (MANDATORY)
 
 The KBC trio must always be used in this exact order:
+
 1. `FileOrURLToMarkdownConverterFlash` — converts file path / URL → Markdown text (field: `text_path`)
 2. `KBCChunkGenerator` — splits Markdown into chunks (field: `raw_chunk`)
 3. `KBCTextCleaner` — LLM-cleans each chunk (field: `cleaned_chunk`)
 
 Rules:
+
 - All three steps are required; never skip one.
 - Input to step 1 must be a file path or URL, never plain text content.
 - Each step's `output_key` becomes the next step's `input_key`.
@@ -107,7 +112,9 @@ Rules:
 **Two-stage output required**:
 
 ### Stage 1: Intermediate Operator Decision (JSON)
+
 Output this first:
+
 ```json
 {
   "ops": ["OperatorA", "OperatorB", "OperatorC"],
@@ -117,6 +124,7 @@ Output this first:
 ```
 
 ### Stage 2: Complete Response (5 sections)
+
 1. **Field Mapping**: Map sample fields to semantic roles, identify fields to generate
 2. **Ordered Operator List**: List operators in execution order with justification
 3. **Reasoning Summary**: Explain operator selection, field flow, why this design
@@ -128,6 +136,7 @@ Output this first:
 **All generated Python code must follow the standard pipeline organization shown in the `examples/` folder of this skill package.**
 
 **Input Data Format**:
+
 - `first_entry_file_name` MUST be set to the **user-provided file path** (the JSONL sample file)
 - File extension must be `.jsonl` (one JSON object per line, NOT an array)
 - **DO NOT create new file paths** - use the exact path the user provided
@@ -143,6 +152,7 @@ Use repository-valid constructor/run signatures only. Never invent parameter nam
 ### Base Components
 
 **`FileStorage`**
+
 ```python
 FileStorage(
   first_entry_file_name="...jsonl",
@@ -153,6 +163,7 @@ FileStorage(
 ```
 
 **`APILLMServing_request`**
+
 ```python
 APILLMServing_request(
   api_url="...",
@@ -165,11 +176,13 @@ APILLMServing_request(
 ### Six Core Operators: Signatures + Key Requirements
 
 **1) `PromptedGenerator`**
+
 - Constructor: `PromptedGenerator(llm_serving, system_prompt="You are a helpful agent.", user_prompt="", json_schema=None)`
 - Run: `run(storage=self.storage.step(), input_key="raw_content", output_key="generated_content")`
 - `input_key` column must exist. Generated rows written to `output_key`.
 
 **2) `FormatStrPromptedGenerator`**
+
 - Constructor: `FormatStrPromptedGenerator(llm_serving, system_prompt="You are a helpful agent.", prompt_template=FormatStrPrompt(...), json_schema=None)`
 - Run: `run(storage=self.storage.step(), output_key="generated_content", **input_keys)`
 - `**input_keys`: each kwarg maps a **template variable name** (key) to a **dataframe column name** (value). Internally does `row[input_keys[key]]` per row, then `prompt_template.build_prompt(need_fields, **key_dict)`.
@@ -178,6 +191,7 @@ APILLMServing_request(
 - Import: `from dataflow.prompts.core_text import FormatStrPrompt`
 
 **3) `Text2MultiHopQAGenerator`**
+
 - Constructor: `Text2MultiHopQAGenerator(llm_serving=self.llm_serving, seed=0, lang="en", prompt_template=None, num_q=5)`
   - `llm_serving` — LLM serving instance (required)
   - `seed` (int, default `0`) — random seed for reproducibility
@@ -196,11 +210,13 @@ APILLMServing_request(
   - Special character ratio must be ≤ 30%
 
 **4) `PromptedFilter`**
+
 - Constructor: `PromptedFilter(llm_serving, system_prompt="...", min_score=1, max_score=5)`
 - Run: `run(storage=self.storage.step(), input_key="raw_content", output_key="eval")`
 - `input_key` must exist. `output_key` is numeric score column; rows outside `[min_score, max_score]` are filtered out.
 
 **5) `GeneralFilter`**
+
 - Constructor: `GeneralFilter([lambda df: df["score"] >= 4, ...])`
 - Run: `run(storage=self.storage.step())`
 - Each rule must return boolean `pd.Series`. Referenced fields must already exist.
@@ -208,6 +224,7 @@ APILLMServing_request(
 **6) KBC Trio (always used in this order)**
 
 **Step 1 — `FileOrURLToMarkdownConverterFlash`**
+
 - Constructor: `FileOrURLToMarkdownConverterFlash(intermediate_dir="../example_data/KBCleaningPipeline/flash/", mineru_model_path="opendatalab/MinerU2.5-2509-1.2B", batch_size=4, replicas=1, num_gpus_per_replica=1.0, engine_gpu_util_rate_to_ray_cap=0.9)`
 - **Does NOT take `llm_serving`** — this operator has no LLM dependency.
 - `mineru_model_path` is **required** — passing `None` raises `ValueError`. Use a HuggingFace model ID or local path.
@@ -215,11 +232,13 @@ APILLMServing_request(
 - Input must be a file path or URL (`.pdf`, `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.html`, `.xml`, `.txt`, `.md`).
 
 **Step 2 — `KBCChunkGenerator`**
+
 - Constructor: `KBCChunkGenerator(chunk_size=512, chunk_overlap=50, split_method="token", min_tokens_per_chunk=100, tokenizer_name="bert-base-uncased")`
 - Run: `run(storage=self.storage.step(), input_key="text_path", output_key="raw_chunk")`
 - `split_method` options: `"token"`, `"sentence"`, `"semantic"`, `"recursive"`.
 
 **Step 3 — `KBCTextCleaner`**
+
 - Constructor: `KBCTextCleaner(llm_serving, lang="en")`
 - Run: `run(storage=self.storage.step(), input_key="raw_chunk", output_key="cleaned_chunk")`
 - LLM-cleans each chunk; output is ready for downstream QA generation.
@@ -240,47 +259,99 @@ from dataflow.operators.knowledge_cleaning import FileOrURLToMarkdownConverterFl
 
 The sibling skill **`core_text`** (located at `../core_text/`) provides detailed per-operator API documentation that supplements the summary signatures above.
 
-**Path**: `../core_text/generate/`
-
-**Available operator references** (8 operators):
-
-| Operator | Subdirectory | Description |
-|---|---|---|
-| `PromptedGenerator` | `prompted-generator/` | Single-field LLM generation — full execution logic, skip-falsy rules |
-| `FormatStrPromptedGenerator` | `format-str-prompted-generator/` | Multi-field template generation — placeholder-to-column mapping details, `@prompt_restrict` validation |
-| `Text2MultiHopQAGenerator` | `text2multihopqa-generator/` | Multi-hop QA pair construction — text filtering thresholds (100–200k chars), output structure, row-count behavior |
-| `BenchAnswerGenerator` | `bench-answer-generator/` | Benchmark answer generation — `eval_type` variants, conditional field requirements |
-| `ChunkedPromptedGenerator` | `chunked-prompted-generator/` | Long document chunk-by-chunk processing — token-based splitting, file I/O conventions |
-| `EmbeddingGenerator` | `embedding-generator/` | Text vectorization — supported serving backends, `/v1/embeddings` endpoint usage |
-| `RandomDomainKnowledgeRowGenerator` | `random-domain-knowledge-row-generator/` | Domain-specific row generation — seed dataframe requirements, `generation_num` constraints |
-| `RetrievalGenerator` | `retrieval-generator/` | Async RAG generation — `LightRAGServing.create()` async initialization, `await run()` requirement |
-
 **Each operator directory contains**:
+
 - `SKILL.md` — Full English reference: constructor signature, `run()` signature, execution logic, mandatory rules, return value semantics
 - `SKILL_zh.md` — Chinese translation of the reference
 - `examples/good.md` — Best-practice pipeline example
 - `examples/bad.md` — Common mistakes and failure cases
 
 **When to consult `core_text`**:
+
 - When generating pipeline code that uses an operator beyond the 6 core primitives (e.g., `BenchAnswerGenerator`, `ChunkedPromptedGenerator`, `EmbeddingGenerator`, `RetrievalGenerator`, `RandomDomainKnowledgeRowGenerator`)
 - When you need to verify edge-case behavior, return value semantics, or error conditions for any operator
 - When debugging generated pipeline code — the `bad.md` examples document the most frequent mistakes
 
 **Note**: The 6 core primitives documented above in "Operator Parameter Signature Rule" remain the primary reference for standard pipeline generation. The `core_text` skill provides deeper detail and covers additional operators not in the core set.
 
+---
+
+### Generate Operators
+
+**Path**: `../core_text/generate/`
+
+**Available operator references** (8 operators):
+
+| Operator                              | Subdirectory                               | Description                                                                                                         |
+| ------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `PromptedGenerator`                 | `prompted-generator/`                    | Single-field LLM generation — full execution logic, skip-falsy rules                                               |
+| `FormatStrPromptedGenerator`        | `format-str-prompted-generator/`         | Multi-field template generation — placeholder-to-column mapping details,`@prompt_restrict` validation            |
+| `Text2MultiHopQAGenerator`          | `text2multihopqa-generator/`             | Multi-hop QA pair construction — text filtering thresholds (100–200k chars), output structure, row-count behavior |
+| `BenchAnswerGenerator`              | `bench-answer-generator/`                | Benchmark answer generation —`eval_type` variants, conditional field requirements                                |
+| `ChunkedPromptedGenerator`          | `chunked-prompted-generator/`            | Long document chunk-by-chunk processing — token-based splitting, file I/O conventions                              |
+| `EmbeddingGenerator`                | `embedding-generator/`                   | Text vectorization — supported serving backends,`/v1/embeddings` endpoint usage                                  |
+| `RandomDomainKnowledgeRowGenerator` | `random-domain-knowledge-row-generator/` | Domain-specific row generation — seed dataframe requirements,`generation_num` constraints                        |
+| `RetrievalGenerator`                | `retrieval-generator/`                   | Async RAG generation —`LightRAGServing.create()` async initialization, `await run()` requirement               |
+
+---
+
+### Eval Operators
+
+**Path**: `../core_text/eval/`
+
+**Available operator references** (5 operators):
+
+| Operator                          | Subdirectory                          | Description                                                                                                  |
+| --------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `BenchDatasetEvaluator`         | `bench-dataset-evaluator/`          | Benchmark answer comparison —`match` (math verification) and `semantic` (LLM-based) modes               |
+| `BenchDatasetEvaluatorQuestion` | `bench-dataset-evaluator-question/` | Extended benchmark evaluator — adds question context and subquestion support over `BenchDatasetEvaluator` |
+| `PromptedEvaluator`             | `prompted-evaluator/`               | LLM-based row scoring  — writes score into new column without removing rows                                |
+| `Text2QASampleEvaluator`        | `text2qa-sample-evaluator/`         | QA pair quality evaluation — 4 dimensions, 8 output columns (grades + feedbacks per dimension)              |
+| `UnifiedBenchDatasetEvaluator`  | `unified-bench-dataset-evaluator/`  | Unified benchmark evaluation — 6 `eval_type` variants, writes 4 output columns                            |
+
+---
+
+### Filter Operators
+
+**Path**: `../core_text/filter/`
+
+**Available operator references** (3 operators):
+
+| Operator                | Subdirectory              | Description                                                                                                             |
+| ----------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `GeneralFilter`       | `general-filter/`       | Rule-based row filtering — lambda conditions combined with AND, removes rows only, adds no new columns                 |
+| `KCenterGreedyFilter` | `kcentergreedy-filter/` | Diversity-based downsampling — K-Center Greedy algorithm, requires pre-computed embedding vectors                      |
+| `PromptedFilter`      | `prompted-filter/`      | LLM semantic filtering — internally uses `PromptedEvaluator`, retains rows with scores in `[min_score, max_score]` |
+
+---
+
+### Refine Operators
+
+**Path**: `../core_text/refine/`
+
+**Available operator references** (2 operators):
+
+| Operator            | Subdirectory          | Description                                                                                    |
+| ------------------- | --------------------- | ---------------------------------------------------------------------------------------------- |
+| `PandasOperator`  | `pandas-operator/`  | Custom DataFrame transformation — applies a sequential list of functions, no LLM calls        |
+| `PromptedRefiner` | `prompted-refiner/` | LLM text refinement — rewrites text in-place, overwrites original column with refined results |
+
 ## Input File Content Analysis Rule (MANDATORY)
 
 Analyze sample data content to determine task nature:
 
 **File path fields** (e.g., `pdf_path`, `image_path`, `doc_path`):
+
 - → KBC trio in order: `FileOrURLToMarkdownConverterFlash` → `KBCChunkGenerator` → `KBCTextCleaner` (supports `.pdf`, `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.html`, `.xml`, `.txt`, `.md`)
 - → Document/file processing workflow
 
 **Plain text fields** (e.g., `text`, `content`, `review_text`):
+
 - → Use `PromptedGenerator`, `PromptedFilter`, `Text2MultiHopQAGenerator`, `FormatStrPromptedGenerator`, `GeneralFilter`
 - → Do NOT use KBC
 
 **Multiple semantic fields** (e.g., `instruction`, `output`, `question`, `answer`):
+
 - → Use `FormatStrPromptedGenerator` for combining fields
 - → Use `GeneralFilter` for field-based rules
 
