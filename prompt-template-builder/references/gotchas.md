@@ -41,3 +41,11 @@
 - 检测: 验收清单 `constraints_applied` 失败。
 - 修复: 在 `# Task` 或 `# Output Format` 区域显式落约束。
 - 预防: Requirement Mapping 中先列约束，再映射到代码。
+
+## G6: `prompt_template` 类型与算子不匹配
+
+- 现象: 代码看似完整，但运行时报类型/属性错误，或算子不识别模板。
+- 根因: 未按 `OP_NAME` 真实签名选择模板类型（例如该用 `FormatStrPrompt` 却生成了 `DIYPromptABC`）。
+- 检测: 静态检查 `prompt_template_type_aligned` 失败；集成片段与算子签名不一致。
+- 修复: 以算子签名说明为准，重写模板类型与集成代码。
+- 预防: 先确认 `OP_NAME` 的构造参数与 `prompt_template` 类型，再生成 Prompt 产物。

@@ -14,6 +14,7 @@
   "reason": "why this prompt design fits target/operator constraints",
   "static_checks": [
     "operator_interface_aligned",
+    "prompt_template_type_aligned",
     "no_invented_params",
     "output_schema_explicit"
   ]
@@ -34,8 +35,9 @@
    - 输入字段映射、约束映射、推断项说明。
 2. **Prompt Design Summary**
    - 提示词结构、边界策略、失败处理。
-3. **Prompt Class Code**
-   - 完整 Python 代码，可直接保存使用。
+   - 说明 `prompt_template` 类型选择依据（并与 `OP_NAME` 签名对齐）。
+3. **Prompt Template/Config Code**
+   - 完整 Python 代码（类或配置对象），可直接保存使用。
 4. **Operator Integration Snippet + Walkthrough**
    - 说明如何在算子 `init` 中绑定 `prompt_template`。
    - 给出 1-2 条样例输入/期望行为走查。

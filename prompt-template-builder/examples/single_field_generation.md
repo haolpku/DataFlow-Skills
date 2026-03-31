@@ -19,7 +19,7 @@ Sample Cases:
 - Tone/Style: 专业简洁
 
 ### Round 2 (Implementation)
-- build_prompt args: `product_name`, `category`
+- prompt inputs: `product_name`, `category`
 - Output shape: 单行文本
 - Validation focus: 接口一致性优先
 
@@ -27,13 +27,14 @@ Sample Cases:
 ```json
 {
   "op_name": "PromptedGenerator",
-  "prompt_class": "ProductSellingPointPrompt",
+  "prompt_class": "N/A (PromptedGenerator uses system_prompt/user_prompt)",
   "arguments": ["product_name", "category"],
   "output_contract": "plain text <= 80 Chinese chars",
-  "strategy": "single-prompt-template",
-  "reason": "Single generation task with two input fields. Keep one prompt class and enforce short, professional output.",
+  "strategy": "system-user-prompt-composition",
+  "reason": "PromptedGenerator is configured by system_prompt + user_prompt in operator signature; build deterministic prompt text without custom prompt_template class.",
   "static_checks": [
     "operator_interface_aligned",
+    "prompt_template_type_aligned",
     "no_invented_params",
     "output_schema_explicit"
   ]
@@ -42,42 +43,22 @@ Sample Cases:
 
 ## Stage 2 (Core Result Snippet)
 
-### Prompt Class Code
+### Prompt Design Code
 ```python
-__all__ = ['ProductSellingPointPrompt']
-
-from dataflow.core.prompt import DIYPromptABC
-
-
-class ProductSellingPointPrompt(DIYPromptABC):
-    def __init__(self):
-        pass
-
-    def build_prompt(self, product_name: str, category: str) -> str:
-        return f"""
-# Role
-你是电商文案助手。
-
-# Task
-基于商品名和类目生成一句卖点描述。
-
-# Constraints
-语气专业，最多80字，不使用夸张承诺。
-
-# Output Format (MANDATORY)
-只返回一行中文文本，不要 JSON，不要额外解释。
-
-# Input
-商品名: {product_name}
-类目: {category}
-"""
+system_prompt = (
+    "你是电商文案助手。"
+    "语气专业，最多80字，不使用夸张承诺。"
+    "只返回一行中文文本，不要 JSON，不要额外解释。"
+)
+user_prompt = "请基于输入内容生成一句电商卖点描述："
 ```
 
 ### Integration Snippet
 ```python
 self.generator = PromptedGenerator(
     llm_serving=self.llm_serving,
-    prompt_template=ProductSellingPointPrompt(),
+    system_prompt=system_prompt,
+    user_prompt=user_prompt,
 )
 ```
 
@@ -88,6 +69,7 @@ self.generator = PromptedGenerator(
 ## Static Acceptance Snapshot
 - [x] input_completeness
 - [x] operator_interface_aligned
+- [x] prompt_template_type_aligned
 - [x] no_invented_params
 - [x] output_schema_explicit
 - [x] walkthrough_consistent

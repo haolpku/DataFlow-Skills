@@ -20,7 +20,7 @@ Sample Cases:
 - Tone/Style: 严格审计型
 
 ### Round 2 (Implementation)
-- build_prompt args: `question`, `answer`
+- template placeholders: `question`, `answer`
 - Output shape: 单整数
 - Validation focus: 字段一致性 + 边界样例
 
@@ -28,13 +28,14 @@ Sample Cases:
 ```json
 {
   "op_name": "FormatStrPromptedGenerator",
-  "prompt_class": "QAPairScorePrompt",
+  "prompt_class": "N/A (FormatStrPrompt object)",
   "arguments": ["question", "answer"],
   "output_contract": "single integer string from 1 to 5",
   "strategy": "multi-field-score-template",
-  "reason": "Quality scoring depends on both question and answer; keep deterministic score-only output.",
+  "reason": "FormatStrPromptedGenerator requires FormatStrPrompt(...); use named placeholders for multi-field scoring and keep deterministic score-only output.",
   "static_checks": [
     "operator_interface_aligned",
+    "prompt_template_type_aligned",
     "no_invented_params",
     "output_schema_explicit"
   ]
@@ -43,19 +44,12 @@ Sample Cases:
 
 ## Stage 2 (Core Result Snippet)
 
-### Prompt Class Code
+### Prompt Template Code
 ```python
-__all__ = ['QAPairScorePrompt']
+from dataflow.prompts.core_text import FormatStrPrompt
 
-from dataflow.core.prompt import DIYPromptABC
-
-
-class QAPairScorePrompt(DIYPromptABC):
-    def __init__(self):
-        pass
-
-    def build_prompt(self, question: str, answer: str) -> str:
-        return f"""
+prompt_template = FormatStrPrompt(
+    f_str_template="""
 # Role
 你是数据质量评估员。
 
@@ -72,11 +66,11 @@ class QAPairScorePrompt(DIYPromptABC):
 Question: {question}
 Answer: {answer}
 """
+)
 ```
 
 ### Integration Snippet
 ```python
-prompt_template = QAPairScorePrompt()
 self.scorer = FormatStrPromptedGenerator(
     llm_serving=self.llm_serving,
     system_prompt="You are a strict QA data evaluator.",
@@ -91,6 +85,7 @@ self.scorer = FormatStrPromptedGenerator(
 ## Static Acceptance Snapshot
 - [x] input_completeness
 - [x] operator_interface_aligned
+- [x] prompt_template_type_aligned
 - [x] no_invented_params
 - [x] output_schema_explicit
 - [x] walkthrough_consistent

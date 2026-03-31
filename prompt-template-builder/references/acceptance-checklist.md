@@ -9,6 +9,7 @@
 ## B. Interface Safety
 
 - [ ] `build_prompt` 参数与算子调用契约一致。
+- [ ] `prompt_template` 类型与 `OP_NAME` 契约一致（如 `DIYPromptABC` / `FormatStrPrompt`）。
 - [ ] 未虚构算子参数或字段。
 - [ ] 模板变量全部已声明（无未定义引用）。
 

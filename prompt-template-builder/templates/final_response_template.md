@@ -11,10 +11,11 @@
 - Prompt structure:
 - Guardrails:
 - Failure handling:
+- Prompt template type basis (must match OP_NAME signature):
 
-## 3. Prompt Class Code
+## 3. Prompt Template/Config Code
 ```python
-# full prompt_template class code
+# full prompt template class code or config object code
 ```
 
 ## 4. Operator Integration Snippet + Walkthrough
@@ -27,6 +28,7 @@
 ## 5. Static Acceptance Result + Caveats
 - [ ] input_completeness
 - [ ] operator_interface_aligned
+- [ ] prompt_template_type_aligned
 - [ ] no_invented_params
 - [ ] output_schema_explicit
 - [ ] walkthrough_consistent

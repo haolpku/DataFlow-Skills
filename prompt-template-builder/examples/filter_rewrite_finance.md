@@ -32,9 +32,10 @@ Sample Cases:
   "arguments": ["question"],
   "output_contract": "JSON: {judgement_test: bool, error_type: str|null}",
   "strategy": "reuse-existing-filter-pattern",
-  "reason": "Reuse operator contract and enforce deterministic JSON output for downstream filtering.",
+  "reason": "Reuse operator contract in a DIYPromptABC-compatible filter and enforce deterministic JSON output for downstream filtering.",
   "static_checks": [
     "operator_interface_aligned",
+    "prompt_template_type_aligned",
     "no_invented_params",
     "no_undefined_template_vars",
     "output_schema_explicit"
@@ -94,6 +95,7 @@ self.reasoning_question_filter = ReasoningQuestionFilter(
 ## Static Acceptance Snapshot
 - [x] input_completeness
 - [x] operator_interface_aligned
+- [x] prompt_template_type_aligned
 - [x] no_invented_params
 - [x] no_undefined_template_vars
 - [x] output_schema_explicit

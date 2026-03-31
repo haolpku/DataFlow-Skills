@@ -81,7 +81,7 @@ Prompt Template Builder Progress:
 - [ ] Step 1: Load references and parse user inputs
 - [ ] Step 2: Choose mode (Interview or Spec)
 - [ ] Step 3: Resolve operator contract (OP_NAME + prompt接口)
-- [ ] Step 4: Build prompt class draft from template
+- [ ] Step 4: Build prompt template/config draft from contract
 - [ ] Step 5: Build Stage 1 decision JSON
 - [ ] Step 6: Build Stage 2 complete deliverable
 - [ ] Step 7: Run static acceptance checklist
@@ -92,13 +92,15 @@ Prompt Template Builder Progress:
 
 1. **Operator Interface Alignment**
    - 不得虚构 `OP_NAME` 的构造参数或 `run` 参数。
-   - `prompt_template` 的调用方式必须与算子约定一致（如 `build_prompt(...)` 参数名/含义）。
+   - `prompt_template` 的调用方式必须与算子约定一致（如参数名/含义/类型）。
+   - 当不同文档冲突时，以“目标算子签名说明”作为单一真源。
 
 2. **Prompt Class Contract**
-   - 生成类应继承 `DIYPromptABC`。
+   - 若目标算子要求 `DIYPromptABC` 风格模板，则生成类应继承 `DIYPromptABC`。
+   - 若目标算子要求其他模板类型（例如 `FormatStrPrompt`），必须按该类型生成并在 Stage 2 标注依据。
    - 保留 `__all__` 导出。
-   - 类名使用 `PascalCase + Prompt`。
-   - `build_prompt` 必须返回 `str`。
+   - DIY 类名使用 `PascalCase + Prompt`。
+   - DIY 模式下 `build_prompt` 必须返回 `str`。
 
 3. **Output Determinism**
    - 若用户指定输出格式，Prompt 中必须给出明确强约束（字段名、类型、取值范围）。
