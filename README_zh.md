@@ -8,6 +8,8 @@ English version: [README.md](./README.md)
 
 ## `generating-dataflow-pipeline`
 
+视频教程: [Generate Pipeline](https://github.com/user-attachments/assets/ca1fefbf-9bf7-469f-b856-b201952fb99b)
+
 一款基于推理引导的 pipeline 规划工具，可根据任务描述与样本数据生成标准的 DataFlow pipeline 代码。
 
 ### 功能说明
