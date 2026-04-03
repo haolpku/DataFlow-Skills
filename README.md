@@ -4,6 +4,116 @@ Reusable agent skills for DataFlow workflows.
 
 中文文档: [README_zh.md](./README_zh.md)
 
+## Prerequisites: Install Claude Code
+
+### Comparison of Usage Methods
+
+| Method | Best For | Pros | Cons |
+|--------|----------|------|------|
+| Web | Complete beginners | No installation required | Limited features |
+| CLI (command line) | Developers | Full-featured, highly integrated | Requires command-line familiarity |
+| Editor integration (VS Code / Cursor, etc.) | Daily development | Seamless workflow | Depends on plugins and environment setup |
+
+**Recommendation:**
+- Complete beginner → Try the web at [https://claude.ai/](https://claude.ai/) first
+- Want to use it for development → Go straight to CLI
+- Already familiar → Consider editor integration
+
+This guide focuses on the **CLI**.
+
+---
+
+### Installing Claude Code CLI
+
+#### 1. Prerequisites
+
+- A Claude account — register at [claude.ai](https://claude.ai) (skip if using a third-party compatible provider)
+- A command-line tool:
+  - Mac / Linux: open Terminal
+  - Windows: open PowerShell or install WSL
+
+#### 2. Install via Official Script (Recommended)
+
+**macOS / Linux / WSL:**
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+**Windows PowerShell:**
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+**Windows CMD:**
+```cmd
+curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
+```
+
+Verify the installation:
+```bash
+claude --version
+```
+A version number means it installed successfully.
+
+#### 3. Install via npm
+
+Prerequisite: Node.js must be installed (verify: `node --version`; if missing, download from [nodejs.org](https://nodejs.org))
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+If the download is slow, use a mirror:
+```bash
+npm install -g @anthropic-ai/claude-code --registry=https://registry.npmmirror.com
+```
+
+
+#### 4. Updating
+
+Update manually:
+```bash
+claude update
+```
+
+Claude Code checks for updates at launch and installs them in the background; the new version takes effect on the next launch. Configure update behavior in `settings.json`:
+
+```json
+{
+  "autoUpdatesChannel": "stable"
+}
+```
+
+Disable automatic updates:
+```json
+{
+  "env": {
+    "DISABLE_AUTOUPDATER": "1"
+  }
+}
+```
+
+> **Note:** Homebrew and WinGet installations do not support automatic updates. Update manually:
+> ```bash
+> brew upgrade claude-code           # macOS
+> winget upgrade Anthropic.ClaudeCode  # Windows
+> ```
+
+#### 5. Common Installation Issues
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| `npm command not found` | Node.js not installed | Download from [nodejs.org](https://nodejs.org) |
+| `permission denied` | Insufficient permissions | Mac/Linux: prefix with `sudo`; Windows: run PowerShell as Administrator |
+| Slow or stalled installation | Network issues | Use a mirror: `--registry=https://registry.npmmirror.com` |
+
+#### Terminal Recommendations
+
+- [WezTerm](https://wezterm.org/) (cross-platform)
+- [Alacritty](https://alacritty.org/) (cross-platform)
+- [Ghostty](https://ghostty.org/) (Linux / macOS)
+- [Kitty](https://github.com/kovidgoyal/kitty) (Linux / macOS)
+
 ---
 
 ## `generating-dataflow-pipeline`
@@ -22,15 +132,7 @@ Given a **target** (what the pipeline should achieve) and a **sample JSONL file*
 
 ### Quick Start
 
-#### 1. Install Claude Code
-
-Install [Claude Code](https://claude.ai/code) via any of the following:
-
-- **CLI**: `npm install -g @anthropic-ai/claude-code`
-- **Desktop app**: Available for Mac and Windows
-- **IDE extensions**: Supports VSCode, etc.
-
-#### 2. Add the Skill
+#### 1. Add the Skill
 
 Clone this repository and copy the skill directories into your Claude Code skills folder:
 
@@ -48,7 +150,7 @@ cp -r DataFlow-Skills/core_text ~/.claude/skills/core_text
 
 Claude Code discovers skills from `.claude/skills/<skill-name>/SKILL.md`. The `name` field in `SKILL.md` frontmatter becomes the `/slash-command`. For more details, see the [official skills documentation](https://code.claude.com/docs/en/skills).
 
-#### 3. Prepare Your Data
+#### 2. Prepare Your Data
 
 Create a JSONL file (one JSON object per line) with 1–5 representative rows:
 
@@ -57,7 +159,7 @@ Create a JSONL file (one JSON object per line) with 1–5 representative rows:
 {"product_name": "Coffee Maker", "category": "Appliances"}
 ```
 
-#### 4. Run the Skill
+#### 3. Run the Skill
 
 In Claude Code, invoke `/generating-dataflow-pipeline` and describe your target:
 
@@ -68,7 +170,7 @@ Sample file: ./data/products.jsonl
 Expected outputs: generated_description, quality_score
 ```
 
-#### 5. Review the Output
+#### 4. Review the Output
 
 The skill returns a two-stage result:
 
@@ -218,32 +320,61 @@ Each operator folder contains:
 
 ## `dataflow-operator-builder`
 
-Production-grade scaffold skill for new DataFlow operators (`generate/filter/refine/eval`), including templates, CLI wrappers, and tests.
+Video tutorial: coming soon
 
-### What This Skill Is For
+Production-grade scaffold skill for new DataFlow operators (`generate/filter/refine/eval`), generating implementation skeletons, CLI wrappers, and test files in one run.
 
-- Use it when you need a new operator package that is immediately runnable in a real repo, not just a single class file.
-- It is especially useful when you want structure consistency across teams: same package layout, same CLI style, and same baseline tests.
+### What It Does
 
-### What You Get After One Run
+Given an **operator spec** (package name, operator type, input/output keys, etc.), this skill:
 
-- A complete operator implementation for one type: `generate`, `filter`, `refine`, or `eval`.
-- A separate CLI module under `cli/`, so the operator can be run in batch jobs without writing extra glue code.
-- Baseline test files (`unit`, `registry`, `smoke`) so the operator is easier to validate in CI from day one.
+1. Validates the spec against constraint rules in `references/` to catch registration, contract, and naming issues early
+2. Generates a complete operator implementation skeleton (`generate`, `filter`, `refine`, or `eval`)
+3. Creates a standalone CLI module under `cli/` for batch jobs and integration testing without extra glue code
+4. Outputs a two-stage result: a `--dry-run` preview of the file plan, then actual file writes after confirmation
 
-### How It Works in Practice
+### Quick Start
 
-1. You describe the operator contract through a spec (package name, operator type, class/module names, input/output keys, and whether it uses LLM).
-2. The skill validates the spec and applies template rules from `references/` to avoid common contract and registration mistakes.
-3. It renders files into your target repo and can run in preview mode first (`--dry-run`) so you can inspect changes before writing.
-4. You fill in business logic details where needed, then run the generated tests and CLI for a quick end-to-end check.
+#### 1. Add the Skill
 
-### Typical Usage
+Clone this repository and copy the skill directory into your Claude Code skills folder:
 
-- Chat entry: `/dataflow-operator-builder`
-- Direct spec entry: `/dataflow-operator-builder --spec path/to/spec.json --output-root path/to/repo`
+```bash
+git clone https://github.com/haolpku/DataFlow-Skills.git
 
-### Minimal Spec Example
+# Project-level (this project only)
+cp -r DataFlow-Skills/dataflow-operator-builder .claude/skills/dataflow-operator-builder
+
+# Or personal-level (all your projects)
+cp -r DataFlow-Skills/dataflow-operator-builder ~/.claude/skills/dataflow-operator-builder
+```
+
+Claude Code discovers skills from `.claude/skills/<skill-name>/SKILL.md`.
+
+#### 2. Run the Skill
+
+**Mode A (default): Interactive Interview**
+
+Just invoke the skill — the agent collects everything it needs through two rounds of batch questions. No files to prepare:
+
+```
+/dataflow-operator-builder
+```
+
+- Round 1: structural fields (package name, operator type, input/output keys, etc.)
+- Round 2: implementation details (LLM usage, CLI module name, test prefix, etc.)
+
+Each question includes a recommended option with a short rationale. The agent proceeds to generation after both rounds.
+
+**Mode B: Direct Spec (when you already have a spec)**
+
+If you already have an operator spec file (JSON), skip the interview and run directly:
+
+```
+/dataflow-operator-builder --spec path/to/spec.json --output-root path/to/repo
+```
+
+Example spec:
 
 ```json
 {
@@ -257,59 +388,118 @@ Production-grade scaffold skill for new DataFlow operators (`generate/filter/ref
 }
 ```
 
-### Input Expectations
+Required: `package_name`, `operator_type`, `operator_class_name`, `operator_module_name`, `input_key`, `output_key`, `uses_llm`. Optional: `cli_module_name`, `test_file_prefix`, `overwrite_strategy`, `validation_level`.
 
-- Required: `package_name`, `operator_type`, `operator_class_name`, `operator_module_name`, `input_key`, `output_key`, `uses_llm`.
-- Optional but common in real projects: `cli_module_name`, `test_file_prefix`, `overwrite_strategy`, `validation_level`.
+#### 4. Review the Output
 
-### A Concrete Scenario
+The skill returns a two-stage result:
 
-- Suppose you need a `filter` operator that removes low-quality records before expensive generation.
-- With this skill, you can quickly scaffold a consistent package, plug in your filtering rules, and immediately run registry/smoke tests.
-- This reduces the usual setup time (folder layout, imports, registration, CLI wiring, test skeletons) and lets you focus on operator logic.
+1. **Create/update plan** — `--dry-run` lists all files to be generated without writing anything
+2. **Operator skeleton** — class definition, `run()` signature, and registration entry
+3. **CLI module** — executable batch script under `cli/`
+4. **Test files** — `unit`, `registry`, and `smoke` baselines ready for CI
 
 ### Helpful Flags
 
-- `--dry-run`: preview create/update plan without modifying files.
-- `--overwrite {ask-each,overwrite-all,skip-existing}`: control overwrite behavior safely in existing repos.
-- `--validation-level {none,basic,full}`: choose how strict pre-write checks should be.
+- `--dry-run`: preview create/update plan without modifying files
+- `--overwrite {ask-each,overwrite-all,skip-existing}`: control overwrite behavior safely in existing repos
+- `--validation-level {none,basic,full}`: choose how strict pre-write checks should be
 
-### Minimal Run Command
+### Generated Artifacts
 
-```bash
-python dataflow-operator-builder/scripts/build_operator_artifacts.py \
-  --spec /tmp/operator_spec.json \
-  --output-root . \
-  --dry-run
+| Artifact | Path | Description |
+|----------|------|-------------|
+| Operator implementation | `<package>/<module_name>.py` | Class definition, `run()` signature, and registry entry |
+| CLI module | `cli/<cli_module_name>.py` | Standalone batch script |
+| Unit test | `tests/unit/test_<prefix>.py` | Basic unit test |
+| Registry test | `tests/registry/test_<prefix>_registry.py` | Validates correct operator registration |
+| Smoke test | `tests/smoke/test_<prefix>_smoke.py` | End-to-end minimal acceptance |
+
+### Generated Operator Skeleton
+
+All generated operators follow the same standard structure:
+
+```python
+from dataflow.operators.base import BaseOperator
+from dataflow.utils.storage import FileStorage
+
+class DemoQualityFilter(BaseOperator):
+    def __init__(self, threshold: float = 0.5):
+        self.threshold = threshold
+
+    def run(self, storage: FileStorage) -> FileStorage:
+        # Implement filtering logic here
+        ...
+        return storage
+
+# Registry entry (auto-generated by the skill)
+OPERATOR_REGISTRY.register("DemoQualityFilter", DemoQualityFilter)
 ```
+
+Key rules:
+- Must extend `BaseOperator` and implement `run()`
+- `run()` accepts and returns a `FileStorage` instance for chain propagation
+- Must be registered via `OPERATOR_REGISTRY` to be discoverable by pipelines
+- The CLI module calls `run()` directly via `--input-file` / `--output-file`, independent of pipeline context
 
 ---
 
 ## `prompt-template-builder`
 
-Production-oriented skill for building/revising DataFlow prompt templates/configs for existing operators, with two-round AskUserQuestion intake, two-stage auditable outputs, and static acceptance walkthrough.
+Video tutorial: coming soon
 
-### What This Skill Is For
+Skill for building/revising DataFlow prompt templates for existing operators, with type-aligned template selection and two-stage auditable outputs.
 
-- Use it when an existing operator needs a new prompt template, or when an old template starts failing on quality, format stability, or business constraints.
-- It is built for production updates where you need clear reasoning and traceability, not just a rewritten prompt string.
+### What It Does
 
-### What Makes It Different
+Given a **target operator** (operator name, constraints, input arguments, etc.), this skill:
 
-- It first checks operator compatibility and picks the right template style (for example `DIYPromptABC` or `FormatStrPrompt`) so your final output matches operator expectations.
-- It returns auditable two-stage outputs, which helps reviewers understand both the decision process and the final artifact.
+1. Checks operator compatibility and selects the right template style (e.g. `DIYPromptABC` or `FormatStrPrompt`) to ensure the template matches operator expectations
+2. Outputs a Stage 1 decision JSON: template strategy, argument mapping, output contract, and static acceptance checks — for code review and traceability
+3. Outputs a Stage 2 final deliverable: template/config content, integration snippet, and acceptance walkthrough — ready for developers and QA to act on
 
-### How the Two Stages Help Review
+### Quick Start
 
-1. Stage 1 (decision JSON): explains why a specific template/config strategy was chosen, how arguments are mapped, what output contract is enforced, and which static checks must pass.
-2. Stage 2 (final deliverable): provides the final template/config, integration snippet, and a checklist-style walkthrough that can be copied into code review or QA notes.
+#### 1. Add the Skill
 
-### Typical Usage
+Clone this repository and copy the skill directory into your Claude Code skills folder:
 
-- Chat entry: `/prompt-template-builder`
-- Direct spec entry: `/prompt-template-builder --spec path/to/prompt_spec.json`
+```bash
+git clone https://github.com/haolpku/DataFlow-Skills.git
 
-### Minimal Spec Example
+# Project-level (this project only)
+cp -r DataFlow-Skills/prompt-template-builder .claude/skills/prompt-template-builder
+
+# Or personal-level (all your projects)
+cp -r DataFlow-Skills/prompt-template-builder ~/.claude/skills/prompt-template-builder
+```
+
+Claude Code discovers skills from `.claude/skills/<skill-name>/SKILL.md`.
+
+#### 2. Run the Skill
+
+**Mode A (default): Interactive Interview**
+
+Just invoke the skill — the agent collects everything it needs through two rounds of batch questions. No files to prepare:
+
+```
+/prompt-template-builder
+```
+
+- Round 1: structural layer (target scenario, operator name, output contract, constraints)
+- Round 2: implementation layer (argument signatures, boundary samples, acceptance preferences)
+
+Each question includes a recommended option with a short rationale. The agent then proceeds to the two-stage generation.
+
+**Mode B: Direct Spec (when you already have a spec)**
+
+If you already have a prompt spec file (JSON), skip the interview and run directly:
+
+```
+/prompt-template-builder --spec path/to/prompt_spec.json
+```
+
+Example spec:
 
 ```json
 {
@@ -320,21 +510,45 @@ Production-oriented skill for building/revising DataFlow prompt templates/config
 }
 ```
 
-### Input Expectations
+Required: `Target`, `OP_NAME`. Recommended: `Constraints`, `Expected Output`, `Arguments`, `Sample Cases`, `Tone/Style`, `Validation Focus`.
 
-- Required: `Target`, `OP_NAME`.
-- Optional but strongly recommended: `Constraints`, `Expected Output`, `Arguments`, `Sample Cases`, `Tone/Style`, `Validation Focus`.
+#### 4. Review the Output
 
-### A Concrete Scenario
+The skill returns a two-stage result:
 
-- You have a `PromptedGenerator` that should generate short e-commerce selling points, but outputs are too long and style is inconsistent.
-- You can provide the business target, length/style constraints, and sample inputs.
-- The skill then produces a type-aligned prompt solution plus validation notes, so you can quickly test whether output length and tone are now stable.
+1. **Stage 1 (decision JSON)** — template strategy, argument mapping, output contract, and static checks (including `prompt_template_type_aligned`)
+2. **Stage 2 (final deliverable)** — template/config content, integration code snippet, and acceptance walkthrough
 
-### Expected Output Shape
+### Supported Template Types
 
-- A Stage 1 decision record (strategy, mapping, checks such as `prompt_template_type_aligned`).
-- A Stage 2 implementation package (template/config content, integration guidance, and acceptance walkthrough).
+| Template Type | Compatible Operators | Description |
+|---------------|---------------------|-------------|
+| `DIYPromptABC` | `PromptedGenerator`, `PromptedFilter`, `PromptedRefiner`, etc. | Fully custom system/user prompt with field interpolation |
+| `FormatStrPrompt` | `FormatStrPromptedGenerator` | Python f-string style multi-field template |
+
+### Stage 1 Decision JSON Format
+
+```json
+{
+  "prompt_template_type_aligned": "DIYPromptABC",
+  "strategy": "Single-field generation using system+user two-layer prompt",
+  "argument_mapping": {
+    "product_name": "product name",
+    "category": "product category"
+  },
+  "output_contract": "Professional tone, <= 80 Chinese characters, ending with a selling-point phrase",
+  "static_checks": [
+    "No extra placeholders",
+    "Tone matches professional definition",
+    "Character limit is verifiable in Stage 2 walkthrough"
+  ]
+}
+```
+
+Key rules:
+- `prompt_template_type_aligned` must match the target operator's contract — types cannot be mixed
+- Every item in `static_checks` must be individually verified in the Stage 2 acceptance walkthrough
+- Argument mapping must fully cover all fields listed in `Arguments` — no omissions allowed
 
 ---
 

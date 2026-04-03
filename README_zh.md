@@ -4,6 +4,115 @@
 
 English version: [README.md](./README.md)
 
+## 前置条件：安装 Claude Code
+
+### 三种使用方式对比
+
+| 方式 | 适合人群 | 优点 | 缺点 |
+|------|----------|------|------|
+| Web 端 | 完全新手 | 无需安装，打开就用 | 功能相对有限 |
+| CLI（命令行） | 有一定基础的开发者 | 功能完整，集成度高 | 需要熟悉命令行 |
+| 编辑器集成（VS Code / Cursor 等） | 日常开发 | 无缝融入工作流 | 依赖插件和环境配置 |
+
+**建议：**
+- 完全新手 → 先用 Web 端 [https://claude.ai/](https://claude.ai/) 试试手感
+- 想用于开发 → 直接学 CLI（命令行）
+- 已经熟练使用 → 考虑编辑器集成
+
+本教程以 **CLI** 为主。
+
+---
+
+### 安装 Claude Code CLI
+
+#### 1. 前置准备
+
+- 需要一个 Claude 账号，访问 [claude.ai](https://claude.ai) 注册（如使用国内大模型可跳过）
+- 确保电脑有命令行工具：
+  - Mac / Linux：打开 Terminal（终端）
+  - Windows：打开 PowerShell 或安装 WSL
+
+#### 2. 使用官方脚本安装（推荐）
+
+**macOS / Linux / WSL：**
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+**Windows PowerShell：**
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+**Windows CMD：**
+```cmd
+curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
+```
+
+安装完成后验证：
+```bash
+claude --version
+```
+显示版本号即安装成功。
+
+#### 3. 使用 npm 安装
+
+前置条件：已安装 Node.js（验证：`node --version`，若未安装请至 [nodejs.org](https://nodejs.org) 下载）
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+网络较慢时可使用国内镜像：
+```bash
+npm install -g @anthropic-ai/claude-code --registry=https://registry.npmmirror.com
+```
+
+#### 4. 更新
+
+手动更新：
+```bash
+claude update
+```
+
+Claude Code 启动时会自动检查更新，后台下载后下次启动生效。可在 `settings.json` 中配置更新行为：
+
+```json
+{
+  "autoUpdatesChannel": "stable"
+}
+```
+
+禁用自动更新：
+```json
+{
+  "env": {
+    "DISABLE_AUTOUPDATER": "1"
+  }
+}
+```
+
+> **注意：** 通过 Homebrew 或 WinGet 安装时不支持自动更新，需手动执行：
+> ```bash
+> brew upgrade claude-code      # macOS
+> winget upgrade Anthropic.ClaudeCode  # Windows
+> ```
+
+#### 5. 常见安装问题
+
+| 问题 | 原因 | 解决方案 |
+|------|------|----------|
+| `npm command not found` | 未安装 Node.js | 至 [nodejs.org](https://nodejs.org) 下载安装 |
+| `permission denied` | 无管理员权限 | Mac/Linux：命令前加 `sudo`；Windows：以管理员身份运行 PowerShell |
+| 安装缓慢或卡住 | 网络问题 | 使用国内镜像：`--registry=https://registry.npmmirror.com` |
+
+#### 终端推荐
+
+- [WezTerm](https://wezterm.org/)（跨平台）
+- [Alacritty](https://alacritty.org/)（跨平台）
+- [Ghostty](https://ghostty.org/)（Linux / macOS）
+- [Kitty](https://github.com/kovidgoyal/kitty)（Linux / macOS）
+
 ---
 
 ## `generating-dataflow-pipeline`
@@ -22,15 +131,7 @@ English version: [README.md](./README.md)
 
 ### 快速上手
 
-#### 1. 安装 Claude Code
-
-通过以下任一方式安装 [Claude Code](https://claude.ai/code)：
-
-- **命令行**：`npm install -g @anthropic-ai/claude-code`
-- **桌面应用**：支持 Mac 和 Windows
-- **IDE 插件**：支持 VSCode 等
-
-#### 2. 添加 Skill
+#### 1. 添加 Skill
 
 克隆本仓库，并将 skill 目录复制到 Claude Code 的 skills 文件夹中：
 
@@ -48,7 +149,7 @@ cp -r DataFlow-Skills/core_text ~/.claude/skills/core_text
 
 Claude Code 从 `.claude/skills/<skill-name>/SKILL.md` 自动发现 skills。`SKILL.md` frontmatter 中的 `name` 字段即为 `/斜杠命令` 名称。更多详情请参阅 [官方 skills 文档](https://code.claude.com/docs/zh-CN/skills)。
 
-#### 3. 准备数据
+#### 2. 准备数据
 
 创建 JSONL 文件（每行一个 JSON 对象），包含 1–5 条代表性数据：
 
@@ -57,7 +158,7 @@ Claude Code 从 `.claude/skills/<skill-name>/SKILL.md` 自动发现 skills。`SK
 {"product_name": "咖啡机", "category": "家用电器"}
 ```
 
-#### 4. 运行 Skill
+#### 3. 运行 Skill
 
 在 Claude Code 中调用 `/generating-dataflow-pipeline` 并描述你的目标：
 
@@ -68,7 +169,7 @@ Claude Code 从 `.claude/skills/<skill-name>/SKILL.md` 自动发现 skills。`SK
 预期输出字段：generated_description, quality_score
 ```
 
-#### 5. 查看输出
+#### 4. 查看输出
 
 Skill 输出两阶段结果：
 
@@ -211,32 +312,60 @@ pipeline 生成器使用的所有文本处理算子的逐算子 API 文档。当
 
 ## `dataflow-operator-builder`
 
-用于生成自定义算子（`generate/filter/refine/eval`）。
+视频教程: 待补充
 
-### 这个 Skill 适合什么场景
+用于生成生产级 DataFlow 自定义算子脚手架（`generate/filter/refine/eval`），包含算子实现骨架、CLI 入口和测试文件。
 
-- 你要新建一个 DataFlow 算子包，而且希望它一开始就是"可运行、可测试、可接入"的工程形态，不只是一个临时类文件。
-- 你希望团队内多个算子的目录结构、CLI 入口、测试基线保持一致，减少后续维护成本。
+### 功能说明
 
-### 一次生成后你会拿到什么
+给定**算子 spec**（包名、算子类型、输入输出字段等），该工具将执行以下操作：
+1. 校验 spec 并依据 `references/` 中的约束规则做静态检查，提前暴露注册、契约、命名等常见问题
+2. 生成完整算子实现骨架（`generate` / `filter` / `refine` / `eval` 之一）
+3. 在 `cli/` 下生成独立命令行入口，便于批处理和联调，无需手写胶水代码
+4. 输出两阶段结果：先 `--dry-run` 展示创建/更新计划，确认无误后再真正写入文件
 
-- 一个完整的算子实现骨架（`generate` / `filter` / `refine` / `eval` 之一）。
-- `cli/` 下独立的命令行入口，方便直接跑批处理或联调，不用再手写胶水代码。
-- `unit/registry/smoke` 三类基础测试文件，便于快速接入 CI 做最小验收。
+### 快速上手
 
-### 实际工作流程（通常是这样）
+#### 1. 添加 Skill
 
-1. 先用 spec 描述算子契约：包名、算子类型、类名/模块名、输入输出字段、是否用 LLM。
-2. Skill 按 `references/` 里的约束做检查，尽量提前暴露注册、契约、命名等常见问题。
-3. 先 `--dry-run` 看计划，再真正写入文件，避免误覆盖现有代码。
-4. 你补充业务逻辑后，直接跑生成的测试和 CLI，快速验证端到端是否通。
+克隆本仓库，并将 skill 目录复制到 Claude Code 的 skills 文件夹中：
 
-### 入口方式
+```bash
+git clone https://github.com/haolpku/DataFlow-Skills.git
 
-- 对话入口：`/dataflow-operator-builder`
-- 指定 spec：`/dataflow-operator-builder --spec path/to/spec.json --output-root path/to/repo`
+# 项目级（仅当前项目可用）
+cp -r DataFlow-Skills/dataflow-operator-builder .claude/skills/dataflow-operator-builder
 
-### 最小 spec 示例
+# 或个人级（所有项目可用）
+cp -r DataFlow-Skills/dataflow-operator-builder ~/.claude/skills/dataflow-operator-builder
+```
+
+Claude Code 从 `.claude/skills/<skill-name>/SKILL.md` 自动发现 skills。
+
+#### 2. 运行 Skill
+
+**方式 A（默认）：交互式采访**
+
+直接调用 skill，Agent 会通过两轮批量提问采集所有必要信息，无需提前准备任何文件：
+
+```
+/dataflow-operator-builder
+```
+
+- 第 1 轮：结构字段（包名、算子类型、输入/输出字段等）
+- 第 2 轮：实现细节（是否使用 LLM、CLI 模块名、测试前缀等）
+
+每个问题均附带推荐选项与理由，填写后自动进入生成流程。
+
+**方式 B：直接指定 Spec（已有配置时使用）**
+
+若已准备好算子 spec 文件（JSON 格式），可跳过采访直接执行：
+
+```
+/dataflow-operator-builder --spec path/to/spec.json --output-root path/to/repo
+```
+
+spec 示例：
 
 ```json
 {
@@ -250,59 +379,117 @@ pipeline 生成器使用的所有文本处理算子的逐算子 API 文档。当
 }
 ```
 
-### 输入字段要求
+必填字段：`package_name`、`operator_type`、`operator_class_name`、`operator_module_name`、`input_key`、`output_key`、`uses_llm`。常见可选：`cli_module_name`、`test_file_prefix`、`overwrite_strategy`、`validation_level`。
 
-- 必填：`package_name`、`operator_type`、`operator_class_name`、`operator_module_name`、`input_key`、`output_key`、`uses_llm`。
-- 常见可选：`cli_module_name`、`test_file_prefix`、`overwrite_strategy`、`validation_level`。
+#### 4. 查看输出
 
-### 一个具体例子（自然语言）
+Skill 输出两阶段结果：
 
-- 比如你要加一个 `filter` 算子，在昂贵生成前先过滤低质量样本。
-- 这个 Skill 能把目录、注册、CLI、测试脚手架一次搭好，你主要只需要关注过滤规则本身。
-- 这样能把"工程搭建时间"压到最低，把精力放在业务逻辑上。
+1. **创建/更新计划**——`--dry-run` 展示将生成的文件清单，无文件落盘
+2. **算子实现骨架**——含类定义、`run()` 方法签名与注册入口
+3. **CLI 入口**——`cli/` 下可直接执行的批处理脚本
+4. **测试文件**——`unit/registry/smoke` 三类基础测试，便于接入 CI 做最小验收
 
 ### 常用参数
 
-- `--dry-run`：只展示创建/更新计划，不落盘。
-- `--overwrite {ask-each,overwrite-all,skip-existing}`：控制覆盖行为，适合已有仓库渐进接入。
-- `--validation-level {none,basic,full}`：选择校验严格度。
+- `--dry-run`：只展示计划，不落盘
+- `--overwrite {ask-each,overwrite-all,skip-existing}`：控制覆盖行为，适合已有仓库渐进接入
+- `--validation-level {none,basic,full}`：选择校验严格度
 
-### 最小运行命令
+### 生成物一览
 
-```bash
-python dataflow-operator-builder/scripts/build_operator_artifacts.py \
-  --spec /tmp/operator_spec.json \
-  --output-root . \
-  --dry-run
+| 生成物 | 路径 | 说明 |
+|--------|------|------|
+| 算子实现 | `<package>/<module_name>.py` | 含类定义、`run()` 方法签名与注册入口 |
+| CLI 入口 | `cli/<cli_module_name>.py` | 独立命令行批处理脚本 |
+| 单元测试 | `tests/unit/test_<prefix>.py` | 基础单元测试 |
+| 注册测试 | `tests/registry/test_<prefix>_registry.py` | 验证算子是否正确注册 |
+| 冒烟测试 | `tests/smoke/test_<prefix>_smoke.py` | 端到端最小验收 |
+
+### 生成的算子骨架
+
+所有生成的算子均遵循统一结构：
+
+```python
+from dataflow.operators.base import BaseOperator
+from dataflow.utils.storage import FileStorage
+
+class DemoQualityFilter(BaseOperator):
+    def __init__(self, threshold: float = 0.5):
+        self.threshold = threshold
+
+    def run(self, storage: FileStorage) -> FileStorage:
+        # 在此实现过滤逻辑
+        ...
+        return storage
+
+# 注册入口（由 Skill 自动生成）
+OPERATOR_REGISTRY.register("DemoQualityFilter", DemoQualityFilter)
 ```
+
+核心规则：
+- 必须继承 `BaseOperator` 并实现 `run()` 方法
+- `run()` 接受并返回 `FileStorage` 实例，保持链式传递
+- 必须通过 `OPERATOR_REGISTRY` 完成注册，方可被 pipeline 发现
+- CLI 入口通过 `--input-file` / `--output-file` 参数直接调用 `run()`，不依赖 pipeline 上下文
 
 ---
 
 ## `prompt-template-builder`
 
-用于为已有算子构建/修订 DataFlow prompt 模板或配置（按算子契约对齐类型）。
+视频教程: 待补充
 
-### 这个 Skill 适合什么场景
+用于为已有算子构建/修订 DataFlow prompt 模板，按算子契约对齐模板类型，输出两阶段可审计结果。
 
-- 你已经有算子了，但 prompt 效果不稳定，或者输出经常不符合领域化预期，需要系统化改写。
-- 你不只想"改一句提示词"，还希望保留清晰的决策依据，方便代码评审和回溯。
+### 功能说明
 
-### 它和普通 prompt 改写的区别
+给定**目标算子**（算子名称、约束条件、输入参数等），该工具将执行以下操作：
+1. 根据算子契约判断应使用哪种模板类型（如 `DIYPromptABC` 或 `FormatStrPrompt`），避免模板与算子不匹配
+2. 输出 Stage 1 决策 JSON：包含模板选型原因、参数映射、输出契约与静态检查项，便于评审与回溯
+3. 输出 Stage 2 最终产物：模板/配置内容、集成代码片段和验收 walkthrough，便于开发和测试直接接手
 
-- 会先根据算子契约判断应该用哪种模板形式（例如 `DIYPromptABC` 或 `FormatStrPrompt`），避免模板类型与算子不匹配。
-- 输出分成两个阶段，先解释"为什么这么做"，再给"最终可落地内容"。
+### 快速上手
 
-### 两阶段输出在实际协作中的价值
+#### 1. 添加 Skill
 
-1. Stage 1（决策 JSON）：把模板选择原因、参数映射、输出契约、静态检查项讲清楚，便于评审。
-2. Stage 2（最终产物）：给出模板/配置内容、集成片段和验收 walkthrough，便于开发和测试直接接手。
+克隆本仓库，并将 skill 目录复制到 Claude Code 的 skills 文件夹中：
 
-### 入口方式
+```bash
+git clone https://github.com/haolpku/DataFlow-Skills.git
 
-- 对话入口：`/prompt-template-builder`
-- 指定 spec：`/prompt-template-builder --spec path/to/prompt_spec.json`
+# 项目级（仅当前项目可用）
+cp -r DataFlow-Skills/prompt-template-builder .claude/skills/prompt-template-builder
 
-### 最小 spec 示例
+# 或个人级（所有项目可用）
+cp -r DataFlow-Skills/prompt-template-builder ~/.claude/skills/prompt-template-builder
+```
+
+Claude Code 从 `.claude/skills/<skill-name>/SKILL.md` 自动发现 skills。
+
+#### 2. 运行 Skill
+
+**方式 A（默认）：交互式采访**
+
+直接调用 skill，Agent 会通过两轮批量提问采集所有必要信息，无需提前准备任何文件：
+
+```
+/prompt-template-builder
+```
+
+- 第 1 轮：结构层（目标场景、目标算子、输出契约、约束条件）
+- 第 2 轮：实现层（参数签名、边界样例、验收偏好）
+
+每个问题均附带推荐选项与理由，填写后自动进入两阶段生成流程。
+
+**方式 B：直接指定 Spec（已有配置时使用）**
+
+若已准备好 prompt spec 文件（JSON 格式），可跳过采访直接执行：
+
+```
+/prompt-template-builder --spec path/to/prompt_spec.json
+```
+
+spec 示例：
 
 ```json
 {
@@ -313,21 +500,45 @@ python dataflow-operator-builder/scripts/build_operator_artifacts.py \
 }
 ```
 
-### 输入字段要求
+必填字段：`Target`、`OP_NAME`。建议补充：`Constraints`、`Expected Output`、`Arguments`、`Sample Cases`、`Tone/Style`、`Validation Focus`。
 
-- 必填：`Target`、`OP_NAME`。
-- 建议补充：`Constraints`、`Expected Output`、`Arguments`、`Sample Cases`、`Tone/Style`、`Validation Focus`。
+#### 4. 查看输出
 
-### 一个具体例子（自然语言）
+Skill 输出两阶段结果：
 
-- 例如你的 `PromptedGenerator` 负责生成电商卖点，但经常超字数、语气飘忽。
-- 你把"目标、字数限制、语气要求、示例输入"告诉这个 Skill，它会给出契约对齐的模板方案和对应验收点。
-- 这样你可以更快判断：新模板是否真的把长度和风格稳定下来，而不是靠反复手调。
+1. **Stage 1（决策 JSON）**——模板选型原因、参数映射、输出契约、静态检查项（含 `prompt_template_type_aligned`）
+2. **Stage 2（最终产物）**——模板/配置内容、集成代码片段、验收 walkthrough
 
-### 期望输出形态
+### 支持的模板类型
 
-- Stage 1：决策记录（策略、映射、检查项，含 `prompt_template_type_aligned`）。
-- Stage 2：实现内容（模板/配置、集成说明、验收 walkthrough）。
+| 模板类型 | 适用算子 | 说明 |
+|----------|----------|------|
+| `DIYPromptABC` | `PromptedGenerator`、`PromptedFilter`、`PromptedRefiner` 等 | 完全自定义 system/user prompt，支持字段插值 |
+| `FormatStrPrompt` | `FormatStrPromptedGenerator` | 使用 Python f-string 风格的多字段模板 |
+
+### Stage 1 决策 JSON 格式
+
+```json
+{
+  "prompt_template_type_aligned": "DIYPromptABC",
+  "strategy": "单字段生成，使用 system+user 双层提示词",
+  "argument_mapping": {
+    "product_name": "商品名",
+    "category": "品类"
+  },
+  "output_contract": "中文，不超过 80 字，以卖点句式结尾",
+  "static_checks": [
+    "无多余占位符",
+    "语气符合专业定义",
+    "字数约束可在 Stage 2 walkthrough 中核验"
+  ]
+}
+```
+
+核心规则：
+- `prompt_template_type_aligned` 必须与目标算子的契约匹配，不可混用
+- `static_checks` 中每一项必须在 Stage 2 验收 walkthrough 中一一核验
+- 参数映射需与 `Arguments` 字段完全对应，不可遗漏
 
 ---
 
