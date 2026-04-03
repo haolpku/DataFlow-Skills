@@ -335,3 +335,130 @@ Production-oriented skill for building/revising DataFlow prompt templates/config
 
 - A Stage 1 decision record (strategy, mapping, checks such as `prompt_template_type_aligned`).
 - A Stage 2 implementation package (template/config content, integration guidance, and acceptance walkthrough).
+
+---
+
+## `dataflow-dev`
+
+A DataFlow developer expert skill that loads full architecture knowledge and routes to seven specialized workflows — from creating operators and pipelines to diagnosing errors, reviewing code, and syncing the knowledge base when the upstream repo changes.
+
+### What It Does
+
+When you invoke `/dataflow-dev` inside a DataFlow repository, the skill:
+
+1. Loads `context/knowledge_base.md` — architecture, API reference, all registered operators
+2. Loads `context/dev_notes.md` — coding standards, best practices, LLM response templates
+3. Loads `diagnostics/known_issues.md` — structured symptom → root cause → fix database
+4. Probes the local repo state (`git branch`, `git log`, `git diff`)
+5. Reports a 1–3 line context summary, then routes to the appropriate workflow
+
+### Quick Start
+
+#### 1. Add the Skill
+
+```bash
+git clone https://github.com/haolpku/DataFlow-Skills.git
+
+# Project-level
+cp -r DataFlow-Skills/dataflow-dev .claude/skills/dataflow-dev
+
+# Or personal-level
+cp -r DataFlow-Skills/dataflow-dev ~/.claude/skills/dataflow-dev
+```
+
+#### 2. Open a DataFlow Repo
+
+```bash
+cd /path/to/DataFlow    # must be the repo root
+claude                  # launch Claude Code
+```
+
+#### 3. Invoke the Skill
+
+```
+/dataflow-dev
+I need a new filter operator that removes texts shorter than N words.
+```
+
+The skill detects your intent, checks for duplicate operators, asks for spec details in a single round, then generates fully compliant code.
+
+### Seven Sub-Command Workflows
+
+| Intent keywords | Workflow |
+|---|---|
+| new operator / create operator / 新建算子 | Operator creation (duplicate check → spec confirmation → code generation → registration reminder) |
+| new pipeline / 新建 Pipeline | Pipeline creation (operator selection → code generation with `storage.step()` pattern) |
+| new prompt / 新建 Prompt | Prompt creation (PromptABC or DIYPromptABC, registry decorator, `@prompt_restrict` placement) |
+| error / KeyError / AttributeError / Warning / 报错 | Diagnosis (match known_issues.md → root cause + fix code) |
+| review / check / 规范审查 | Code review (operator and pipeline checklists, 14-point validation) |
+| sync / check updates / 仓库有新算子 | Knowledge base update (detect new operator files, compare against knowledge_base.md, emit update steps) |
+
+### Operator Creation Checklist
+
+Every generated operator is validated against these hard rules before output:
+
+```
+✓ Inherits OperatorABC, calls super().__init__()
+✓ @OPERATOR_REGISTRY.register() decorator on the class
+✓ run() parameter naming: input_* / output_* / storage
+✓ run() returns list of output key names
+✓ storage.read() and storage.write() both present
+✓ LLM-driven operators: member variable named self.llm_serving
+✓ Full per-row try/except with sensible defaults on LLM failure
+✓ CoT model outputs: <think> tags stripped where needed
+✓ @staticmethod get_desc(lang: str = "zh") supporting zh/en
+✓ __init__.py TYPE_CHECKING block registration
+```
+
+### Diagnostics Quick Reference
+
+| Error keyword | Issue |
+|---|---|
+| `Unexpected key 'xxx' in operator` | #001 — config param naming (warning only, not an error) |
+| `No object named 'Xxx' found in 'operators' registry` | #002 — missing `__init__.py` TYPE_CHECKING entry |
+| `Key Matching Error` / `does not match any output keys` | #003 — pipeline key mismatch |
+| `You must call storage.step() before` | #004 — missing `storage.step()` call |
+| `DummyStorage` + `AttributeError` | #005 — DummyStorage API limitations |
+| `AttributeError: 'NoneType'` + `re.split` | #006 — capturing group in `re.split()` pattern |
+| `@prompt_restrict` not taking effect | #007 — decorator placement must be adjacent to class definition |
+
+Full root-cause analysis and fix examples are in `diagnostics/known_issues.md`.
+
+### Knowledge Base Update Flow
+
+When the upstream repo (`OpenDCAI/DataFlow`) merges new operator PRs:
+
+```bash
+# Check upstream merged PRs
+gh pr list --repo OpenDCAI/DataFlow --state merged --limit 20
+
+# Detect newly added operator files in local repo (last 30 commits)
+git log --oneline --diff-filter=A -- 'dataflow/operators/**/*.py' | head -30
+
+# Or run the bundled helper script
+bash .claude/skills/dataflow-dev/scripts/check_updates.sh /path/to/DataFlow
+```
+
+The script outputs: new operator files, all registered operator names, operators missing from `knowledge_base.md`, and recent upstream PRs/Issues — with a step-by-step update guide.
+
+### File Structure
+
+```
+dataflow-dev/
+├── SKILL.md                        # Skill definition & sub-command routing
+├── context/
+│   ├── knowledge_base.md           # Architecture, API reference, all operators (read-only)
+│   └── dev_notes.md                # Coding standards, best practices (appendable)
+├── diagnostics/
+│   └── known_issues.md             # Structured Issue database #001–#008
+├── templates/
+│   ├── operator_template.py        # Operator scaffold
+│   ├── pipeline_template.py        # Pipeline scaffold
+│   └── prompt_template.py          # Prompt scaffold
+└── scripts/
+    └── check_updates.sh            # Repo change detection & knowledge base diff
+```
+
+### Upstream Repository
+
+All knowledge in this skill is aligned to **[OpenDCAI/DataFlow](https://github.com/OpenDCAI/DataFlow)** (`main` branch, v1.0.10).

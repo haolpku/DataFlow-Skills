@@ -328,3 +328,130 @@ python dataflow-operator-builder/scripts/build_operator_artifacts.py \
 
 - Stage 1：决策记录（策略、映射、检查项，含 `prompt_template_type_aligned`）。
 - Stage 2：实现内容（模板/配置、集成说明、验收 walkthrough）。
+
+---
+
+## `dataflow-dev`
+
+DataFlow 开发专家技能，加载完整架构知识并路由到七个专项工作流——涵盖新建算子/Pipeline/Prompt、诊断报错、代码规范审查，以及在上游仓库发生变更时同步知识库。
+
+### 功能说明
+
+在 DataFlow 仓库中调用 `/dataflow-dev` 后，该技能将：
+
+1. 加载 `context/knowledge_base.md`——架构说明、API 参考、所有已注册算子
+2. 加载 `context/dev_notes.md`——开发规范、最佳实践、LLM 响应容错模板
+3. 加载 `diagnostics/known_issues.md`——结构化"症状 → 根因 → 修复"诊断数据库
+4. 探测本地仓库状态（`git branch`、`git log`、`git diff`）
+5. 输出 1–3 行上下文摘要，然后路由到对应工作流
+
+### 快速上手
+
+#### 1. 添加 Skill
+
+```bash
+git clone https://github.com/haolpku/DataFlow-Skills.git
+
+# 项目级（仅当前项目可用）
+cp -r DataFlow-Skills/dataflow-dev .claude/skills/dataflow-dev
+
+# 或个人级（所有项目可用）
+cp -r DataFlow-Skills/dataflow-dev ~/.claude/skills/dataflow-dev
+```
+
+#### 2. 打开 DataFlow 仓库
+
+```bash
+cd /path/to/DataFlow    # 必须是仓库根目录
+claude                  # 启动 Claude Code
+```
+
+#### 3. 调用 Skill
+
+```
+/dataflow-dev
+我需要一个新的 filter 算子，过滤掉词数少于 N 的文本。
+```
+
+技能会自动识别意图、检查是否有重复算子、一轮询问规格细节，然后生成完全符合规范的代码。
+
+### 七个子命令工作流
+
+| 意图关键词 | 工作流 |
+|---|---|
+| 新建算子 / new operator / create operator | 算子创建（重复性检查 → 规格确认 → 代码生成 → 注册提醒） |
+| 新建 Pipeline / new pipeline | Pipeline 创建（算子选择 → 按 `storage.step()` 模式生成代码） |
+| 新建 Prompt / new prompt | Prompt 创建（PromptABC 或 DIYPromptABC、注册装饰器、`@prompt_restrict` 位置） |
+| 报错 / error / KeyError / AttributeError / Warning | 诊断（匹配 known_issues.md → 根因 + 修复示例代码） |
+| 审查 / review / check / 规范检查 | 代码审查（算子与 Pipeline 双 checklist，共 14 项校验） |
+| 更新知识库 / sync / check updates / 仓库有新算子 | 知识库更新（检测新算子文件、与 knowledge_base.md 对比、给出更新步骤） |
+
+### 算子创建硬性规范 Checklist
+
+每次生成算子代码前，系统会逐项验证以下规范：
+
+```
+✓ 继承 OperatorABC，调用 super().__init__()
+✓ 类上方有 @OPERATOR_REGISTRY.register() 装饰器
+✓ run() 参数命名：input_* / output_* / storage
+✓ run() 返回输出 key 列表
+✓ storage.read() 和 storage.write() 都存在
+✓ LLM 驱动算子：成员变量必须命名为 self.llm_serving
+✓ 对每条 LLM 返回值单独 try/except，失败有合理默认值
+✓ CoT 模型输出：在不需要保留推理链的字段中剥离 <think> 标签
+✓ @staticmethod get_desc(lang: str = "zh")，支持 zh/en
+✓ __init__.py 的 TYPE_CHECKING 块已注册
+```
+
+### 诊断速查表
+
+| 报错关键词 | 对应 Issue |
+|---|---|
+| `Unexpected key 'xxx' in operator` | #001 — 配置参数命名（仅警告，非报错） |
+| `No object named 'Xxx' found in 'operators' registry` | #002 — `__init__.py` TYPE_CHECKING 块缺少声明 |
+| `Key Matching Error` / `does not match any output keys` | #003 — Pipeline key 不一致 |
+| `You must call storage.step() before` | #004 — 缺少 `storage.step()` 调用 |
+| `DummyStorage` + `AttributeError` | #005 — DummyStorage API 限制 |
+| `AttributeError: 'NoneType'` + `re.split` | #006 — `re.split()` pattern 中使用了捕获组 |
+| `@prompt_restrict` 不生效 | #007 — 装饰器必须紧贴类定义上方 |
+
+完整根因分析与修复示例见 `diagnostics/known_issues.md`。
+
+### 知识库更新流程
+
+当上游仓库（`OpenDCAI/DataFlow`）合入新算子 PR 时：
+
+```bash
+# 查看上游最近合并的 PR
+gh pr list --repo OpenDCAI/DataFlow --state merged --limit 20
+
+# 检测本地仓库新增的算子文件（最近 30 次提交）
+git log --oneline --diff-filter=A -- 'dataflow/operators/**/*.py' | head -30
+
+# 或者直接运行内置辅助脚本
+bash .claude/skills/dataflow-dev/scripts/check_updates.sh /path/to/DataFlow
+```
+
+脚本输出：新增算子文件、所有已注册算子名、未在 `knowledge_base.md` 中出现的算子，以及上游最近 PR/Issue——并附带分步更新指引。
+
+### 文件结构
+
+```
+dataflow-dev/
+├── SKILL.md                        # Skill 定义与子命令路由
+├── context/
+│   ├── knowledge_base.md           # 架构、API 参考、所有算子（只读参考）
+│   └── dev_notes.md                # 开发规范、最佳实践（可追加）
+├── diagnostics/
+│   └── known_issues.md             # 结构化 Issue 数据库 #001–#008
+├── templates/
+│   ├── operator_template.py        # 算子骨架模板
+│   ├── pipeline_template.py        # Pipeline 骨架模板
+│   └── prompt_template.py          # Prompt 骨架模板
+└── scripts/
+    └── check_updates.sh            # 仓库变更感知与知识库差异检测脚本
+```
+
+### 上游仓库
+
+本技能中的所有知识对齐自 **[OpenDCAI/DataFlow](https://github.com/OpenDCAI/DataFlow)**（`main` 分支，v1.0.10）。
