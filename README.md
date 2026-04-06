@@ -320,7 +320,7 @@ Each operator folder contains:
 
 ## `dataflow-operator-builder`
 
-Video tutorial: coming soon
+Video tutorial: [Build DataFlow Operator](https://files.catbox.moe/uzk3ag.mp4)
 
 Production-grade scaffold skill for new DataFlow operators (`generate/filter/refine/eval`), generating implementation skeletons, CLI wrappers, and test files in one run.
 
@@ -446,7 +446,7 @@ Key rules:
 
 ## `prompt-template-builder`
 
-Video tutorial: coming soon
+Video tutorial: [DataFlow Prompt Template Builder](https://files.catbox.moe/d1pdr9.mp4)
 
 Skill for building/revising DataFlow prompt templates for existing operators, with type-aligned template selection and two-stage auditable outputs.
 
