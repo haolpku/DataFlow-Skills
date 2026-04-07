@@ -312,7 +312,7 @@ pipeline 生成器使用的所有文本处理算子的逐算子 API 文档。当
 
 ## `dataflow-operator-builder`
 
-视频教程: 待补充
+视频教程: [构建 DataFlow 算子](https://files.catbox.moe/uzk3ag.mp4)
 
 用于生成生产级 DataFlow 自定义算子脚手架（`generate/filter/refine/eval`），包含算子实现骨架、CLI 入口和测试文件。
 
@@ -437,7 +437,7 @@ OPERATOR_REGISTRY.register("DemoQualityFilter", DemoQualityFilter)
 
 ## `prompt-template-builder`
 
-视频教程: 待补充
+视频教程: [DataFlow 提示词模板生成](https://files.catbox.moe/d1pdr9.mp4)
 
 用于为已有算子构建/修订 DataFlow prompt 模板，按算子契约对齐模板类型，输出两阶段可审计结果。
 
