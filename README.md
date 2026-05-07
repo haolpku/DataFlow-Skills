@@ -138,6 +138,7 @@ Clone this repository and copy the skill directories into your Claude Code skill
 
 ```bash
 git clone https://github.com/haolpku/DataFlow-Skills.git
+mkdir -p .claude/skills
 
 # Project-level (this project only)
 cp -r DataFlow-Skills/generating-dataflow-pipeline .claude/skills/generating-dataflow-pipeline
